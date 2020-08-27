@@ -106,6 +106,17 @@ describe("Reviews Endpoints", function () {
               error: `Missing '${field}' in request body`,
             });
         });
+        describe(`GET /api/things/:thing_id/reviews`, () => {
+          context(`Given no things`, () => {
+            it(`responds with 404`, () => {
+              const thingId = 123456;
+              return supertest(app)
+                .get(`/api/things/${thingId}/reviews`)
+                .set('Authorization', makeAuthHeader(testUsers[0]))
+                .expect(404, { error: `Thing doesn't exist` });
+            });
+          });
+        });
       });
     });
   });

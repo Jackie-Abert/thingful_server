@@ -155,7 +155,7 @@ describe("Things Endpoints", function () {
       it("removes XSS attack content", () => {
         return supertest(app)
           .get(`/api/things/${maliciousThing.id}`)
-          .set("Authorization", makeAuthHeader(testUsers[0]))
+          .set("Authorization", makeAuthHeader(testUser))
           .expect(200)
           .expect((res) => {
             expect(res.body.title).to.eql(expectedThing.title);
@@ -164,17 +164,6 @@ describe("Things Endpoints", function () {
       });
     });
   });
-
-  describe(`GET /api/things/:thing_id/reviews`, () => {
-    context(`Given no things`, () => {
-      it(`responds with 404`, () => {
-        const thingId = 123456;
-        return supertest(app)
-          .get(`/api/things/${thingId}/reviews`)
-          .set('Authorization', makeAuthHeader(testUsers[0]))
-          .expect(404, { error: `Thing doesn't exist` });
-      });
-    });
 
     context("Given there are reviews for thing in the database", () => {
       beforeEach("insert things", () =>
@@ -196,4 +185,4 @@ describe("Things Endpoints", function () {
       });
     });
   });
-});
+

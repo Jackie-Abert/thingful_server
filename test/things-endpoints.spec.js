@@ -11,6 +11,11 @@ describe('Things Endpoints', function() {
     testReviews,
   } = helpers.makeThingsFixtures()
 
+  function makeAuthHeader(user) {
+    const token = Buffer.from(`${user.user_name}:${user.password}`).toString('base64')
+    return `Basic ${token}`
+    }
+
   before('make knex instance', () => {
     db = knex({
       client: 'pg',
@@ -24,6 +29,42 @@ describe('Things Endpoints', function() {
   before('cleanup', () => helpers.cleanTables(db))
 
   afterEach('cleanup', () => helpers.cleanTables(db))
+  
+  describe("Protected endpoints", () => {
+    beforeEach("insert things", () =>
+      helpers.makeThingsFixtures(
+        db,
+        testUsers, 
+        testThings, 
+        testReviews
+      )
+    );
+
+    
+    
+    
+    
+    describe(`GET /things/:thing_id`, () => {
+      it.only(`responds with 401 'Missing basic token' when no basic token`, () => {
+        return supertest(app)
+          .get(`/api/things/:thing_id`)
+          .expect(401, { error: `Unauthorized request` });
+      });
+      it.only(`responds 401 'Unauthorized request' when no credentials in token`, () => {
+        const userNoCreds = { user_name: '', password: '' }
+        return supertest(app)
+        .get(`/api/things/:thing_id`)
+        .expect(401, { error: `Unauthorized request` })
+        })
+
+        it.only(`responds 401 'Unauthorized request' when invalid user`, () => {
+          const userInvalidCreds = { user_name: 'user-not', password: 'existy' }
+          return supertest(app)
+          .get(`/api/things/:thing_id`)
+          .expect(401, { error: `Unauthorized request` })
+          })
+    });
+  });
 
   describe(`GET /api/things`, () => {
     context(`Given no things`, () => {
@@ -94,7 +135,7 @@ describe('Things Endpoints', function() {
           .expect(404, { error: `Thing doesn't exist` })
       })
     })
-
+      
     context('Given there are things in the database', () => {
       beforeEach('insert things', () =>
         helpers.seedThingsTables(
@@ -115,6 +156,7 @@ describe('Things Endpoints', function() {
 
         return supertest(app)
           .get(`/api/things/${thingId}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, expectedThing)
       })
     })
@@ -137,6 +179,7 @@ describe('Things Endpoints', function() {
       it('removes XSS attack content', () => {
         return supertest(app)
           .get(`/api/things/${maliciousThing.id}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200)
           .expect(res => {
             expect(res.body.title).to.eql(expectedThing.title)

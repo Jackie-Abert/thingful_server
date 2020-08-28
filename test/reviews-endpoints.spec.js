@@ -1,19 +1,13 @@
 const knex = require("knex");
 const app = require("../src/app");
 const helpers = require("./test-helpers");
-const testReviews = require("./test-helpers");
+
 
 describe("Reviews Endpoints", function () {
   let db;
 
-  const { testThings, testUsers } = helpers.makeThingsFixtures();
+  const { testThings, testUsers, testReviews } = helpers.makeThingsFixtures();
 
-  function makeAuthHeader(user) {
-    const token = Buffer.from(`${user.user_name}:${user.password}`).toString(
-      "base64"
-    );
-    return `Basic ${token}`;
-  }
   before("make knex instance", () => {
     db = knex({
       client: "pg",
@@ -24,30 +18,14 @@ describe("Reviews Endpoints", function () {
 
   after("disconnect from db", () => db.destroy());
 
-  before("cleanup", () => helpers.cleanTables(db));
+  // before("cleanup", () => helpers.cleanTables(db));
 
   afterEach("cleanup", () => helpers.cleanTables(db));
-
-  describe("Protected endpoints", () => {
-    beforeEach("insert things", () =>
-      helpers.makeThingsFixtures(db, testUsers, testThings, testReviews)
-    );
-
+    
     describe(`POST /api/reviews`, () => {
-      beforeEach("insert things", () =>
-        helpers.seedThingsTables(db, testUsers, testThings)
+      beforeEach("insert things tables", () =>
+        helpers.seedThingsTables(db, testUsers, testThings, testReviews)
       );
-
-      it(`responds 401 'Unauthorized request' when invalid password`, () => {
-        const userInvalidPass = {
-          user_name: testUsers[0].user_name,
-          password: "wrong",
-        };
-        return supertest(app)
-          .post("/api/reviews")
-          .set("Authorization", helpers.makeAuthHeader(userInvalidPass))
-          .expect(401, { error: `Unauthorized request` });
-      });
 
       it(`creates an review, responding with 201 and the new review`, function () {
         this.retries(3);
@@ -114,18 +92,6 @@ describe("Reviews Endpoints", function () {
               error: `Missing '${field}' in request body`,
             });
         });
-        describe(`GET /api/things/:thing_id/reviews`, () => {
-          context(`Given no things`, () => {
-            it(`responds with 404`, () => {
-              const thingId = 123456;
-              return supertest(app)
-                .get(`/api/things/${thingId}/reviews`)
-                .set("Authorization", makeAuthHeader(testUsers[0]))
-                .expect(404, { error: `Thing doesn't exist` });
-            });
-          });
-        });
       });
     });
   });
-});
